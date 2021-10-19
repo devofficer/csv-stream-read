@@ -38,7 +38,7 @@ const main = () => {
     const endTime = startTime + 86400;
 
     if (options.token) {          // when date and token is given
-      fs.createReadStream(filepath)
+      var readStream = fs.createReadStream(filepath)
         .pipe(csv())
         .on('data', (record) => {
           const acc = record.transaction_type === 'DEPOSIT' ? 1 : -1;
@@ -51,10 +51,16 @@ const main = () => {
               ? results[record.token] + acc * record.amount 
               : 0)
           }
+
+          // assume that csv is sorted as timestamp then stop reading old data before the given date
+          if (record.timestamp < startTime) {
+            readStream.destroy();
+          }
         })
         .on('end', printInUSD(results))
+        .on('close', printInUSD(results))
     } else {                    // when only date is given
-      fs.createReadStream(filepath)
+      var readStream = fs.createReadStream(filepath)
         .pipe(csv())
         .on('data', (record) => {
           const acc = record.transaction_type === 'DEPOSIT' ? 1 : -1;
@@ -66,8 +72,14 @@ const main = () => {
               ? results[record.token] + acc * record.amount 
               : 0)
           }
+
+          // assume that csv is sorted as timestamp then stop reading old data before the given date
+          if (record.timestamp < startTime) {
+            readStream.destroy();
+          }
         })
         .on('end', printInUSD(results))
+        .on('close', printInUSD(results))
     }
   } else if (options.token) {    // when only token is given
     fs.createReadStream(filepath)
